@@ -2,9 +2,10 @@ import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL_NON_POOLING!, { ssl: 'require' });
 
 async function seedUsers() {
+  console.log('Starting to seed users...');
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   await sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -26,10 +27,12 @@ async function seedUsers() {
     }),
   );
 
+  console.log(`✓ Seeded ${insertedUsers.length} users`);
   return insertedUsers;
 }
 
 async function seedInvoices() {
+  console.log('Starting to seed invoices...');
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
   await sql`
@@ -52,10 +55,12 @@ async function seedInvoices() {
     ),
   );
 
+  console.log(`✓ Seeded ${insertedInvoices.length} invoices`);
   return insertedInvoices;
 }
 
 async function seedCustomers() {
+  console.log('Starting to seed customers...');
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
   await sql`
@@ -77,10 +82,12 @@ async function seedCustomers() {
     ),
   );
 
+  console.log(`✓ Seeded ${insertedCustomers.length} customers`);
   return insertedCustomers;
 }
 
 async function seedRevenue() {
+  console.log('Starting to seed revenue...');
   await sql`
     CREATE TABLE IF NOT EXISTS revenue (
       month VARCHAR(4) NOT NULL UNIQUE,
@@ -98,20 +105,23 @@ async function seedRevenue() {
     ),
   );
 
+  console.log(`✓ Seeded ${insertedRevenue.length} revenue entries`);
   return insertedRevenue;
 }
 
 export async function GET() {
+  console.log('🌱 Starting database seeding...');
+  
   try {
-    const result = await sql.begin((sql) => [
-      seedUsers(),
-      seedCustomers(),
-      seedInvoices(),
-      seedRevenue(),
-    ]);
+    await seedUsers();
+    await seedCustomers();
+    await seedInvoices();
+    await seedRevenue();
 
+    console.log('✅ Database seeded successfully!');
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
+    console.error('❌ Seeding error:', error);
     return Response.json({ error }, { status: 500 });
   }
 }
